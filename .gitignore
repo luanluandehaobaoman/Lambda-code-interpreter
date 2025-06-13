@@ -1,0 +1,99 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+*/venv/
+*/env/
+src/chatbot/venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+chatbot.log
+chatbot_fixed.log
+
+# AWS
+.aws/
+*.pem
+*.key
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/
+temp/
+
+# Test files
+test_*.py
+*_test.py
+
+# Deployment configuration with sensitive info
+etc/environment.sh
+
+# Additional files to ignore
+nohup.out
+chatbot.log
+chatbot_fixed.log
+# New structure
+apps/*/build/
+apps/*/dist/
+packages/*/build/
+packages/*/dist/
+
+# SAM build artifacts
+sam/layer_output.yaml
+sam/template_output.yaml
+sam/.aws-sam/
+build/
+build.toml
+
+# Legacy directories to ignore  
+.backup/

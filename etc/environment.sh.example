@@ -18,8 +18,8 @@ O_LAYER_ARN=""
 
 # API Gateway and Lambda Stack Settings
 P_API_STAGE=dev                            # API Gateway deployment stage
-P_FN_MEMORY=1024                          # Lambda memory allocation (MB) - recommend 1024+ for Python execution
-P_FN_TIMEOUT=120                          # Lambda timeout (seconds) - recommend 120+ for complex operations
+P_FN_MEMORY=128                         # Lambda memory allocation (MB) - recommend 1024+ for Python execution
+P_FN_TIMEOUT=60                         # Lambda timeout (seconds) - recommend 120+ for complex operations
 APIGW_STACK=mcp-apigw
 APIGW_TEMPLATE=sam/template.yaml
 APIGW_OUTPUT=sam/template_output.yaml

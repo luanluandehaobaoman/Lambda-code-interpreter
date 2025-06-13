@@ -1,629 +1,434 @@
-# 🚀 Serverless MCP Python Code Interpreter
+# 🐍 Lambda Code Interpreter
 
-A serverless Python code interpreter deployed on AWS Lambda that enables secure Python code execution through the Model Context Protocol (MCP).
+A serverless Python code interpreter built on AWS Lambda that provides secure Python code execution through the MCP (Model Context Protocol). Perfect for AI-powered code interpretation, data science computations, and educational Python environments.
 
-## 🎯 Overview
+## 🎯 Features
 
-This repository provides a complete MCP server implementation for executing Python code on AWS Lambda, featuring:
-
-- **🐍 Python Code Interpreter**: Execute Python code with pre-installed data science libraries
-- **🌐 Web Interface**: Interactive demo interface for testing
-- **🤖 AI Integration**: AWS Bedrock Claude integration for intelligent conversations  
-- **☁️ Serverless Architecture**: AWS Lambda for automatic scaling and cost optimization
-- **🔒 Security Sandboxing**: Secure execution in Lambda's isolated environment
+- **🐍 Secure Python Execution**: Execute Python code in a secure, isolated AWS Lambda environment
+- **📊 Data Science Ready**: Pre-installed with pandas, numpy, matplotlib, scipy, scikit-learn, and more
+- **🤖 MCP Protocol Support**: Full Model Context Protocol compliance for AI integration
+- **☁️ Serverless Architecture**: AWS Lambda with auto-scaling and pay-per-use
+- **🔒 Security Sandbox**: Multiple layers of security including Lambda isolation and code pattern blocking
+- **⚡ Dynamic Dependencies**: Runtime package installation with timeout protection
+- **🌐 HTTP API**: RESTful API through AWS API Gateway
 
 ## 🏗️ Architecture
 
-**Stateless Design (Recommended):**
 ```
-Client (Claude/Web UI) → API Gateway → Lambda Function → Python Interpreter → Results
+Client/AI Agent
+    ↓ MCP Protocol (JSON-RPC 2.0)
+AWS API Gateway 
+    ↓ HTTP Proxy Integration
+AWS Lambda Function (Python 3.12)
+    ├── FastAPI Server
+    ├── MCP Protocol Handler  
+    ├── Python Code Interpreter
+    └── Dependency Manager
+        └── Pre-installed Libraries Layer
 ```
 
-Benefits:
-- Horizontal scaling across multiple instances
-- No session affinity requirements  
-- Pay-per-use cost model
-- High availability and fault tolerance
-
-## 🔧 Features & Tools
-
-### Core Capabilities
-- **📝 Safe Python Execution**: Security patterns blocking with timeout protection
-- **📦 Dynamic Package Installation**: Runtime package installation capability
-- **🔬 Pre-installed Data Science Stack**: pandas, numpy, matplotlib, scipy, scikit-learn, seaborn
-- **🌐 RESTful API**: Interface via Amazon API Gateway
-
-### Available MCP Tools
-1. **`execute_python`**: Execute Python code with optional dependency installation
-2. **`list_preinstalled_packages`**: List available pre-installed packages  
-3. **`get_environment_info`**: Get Python environment information
-
-## 🚀 Quick Start Guide
+## 🚀 Quick Start
 
 ### Prerequisites
-- AWS CLI configured with proper permissions
-- Python 3.9+
-- Docker (for SAM builds)
-- AWS SAM CLI
-- Make utility
-- A unique S3 bucket name
 
-### Step 1: Manual Setup
+- **AWS CLI** configured with permissions for Lambda, API Gateway, CloudFormation, S3, and IAM
+- **Python 3.9+** and **pip**
+- **Docker** (required for SAM to build Lambda layers)
+- **AWS SAM CLI** (`pip install aws-sam-cli`)
+- **S3 Bucket** for deployment artifacts
+
+### Installation & Deployment
+
+#### 1. Clone and Setup
+
 ```bash
-# Clone and navigate to project
 git clone <repository-url>
 cd Lambda-code-interpreter
 
-# Create main virtual environment
+# Install Python dependencies (for local development)
 python3 -m venv venv
-source venv/bin/activate
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
+```
 
-# Create chatbot virtual environment
-cd src/chatbot
-python3 -m venv venv
-source venv/bin/activate
-pip install -r ../../requirements.txt
-cd ../..
+#### 2. Configure AWS Environment
 
-# Setup environment configuration
+```bash
+# Copy and edit the AWS deployment configuration
+cp etc/environment.sh.example etc/environment.sh
+
+# Edit etc/environment.sh with your values:
+# PROFILE=default                    # Your AWS CLI profile
+# BUCKET=your-unique-s3-bucket-name  # S3 bucket for deployment
+# REGION=us-east-1                   # Your preferred AWS region
+# O_LAYER_ARN=""                     # Leave empty for first deployment
+```
+
+#### 3. Deploy Lambda Layer (Dependencies)
+
+```bash
+make layer
+```
+
+After successful deployment, copy the Layer ARN from the output and update `O_LAYER_ARN` in `etc/environment.sh`.
+
+#### 4. Deploy API Gateway and Lambda Function
+
+```bash
+make apigw
+```
+
+The deployment will output an API Gateway endpoint URL like:
+`https://abc123.execute-api.us-east-1.amazonaws.com/dev`
+
+#### 5. Configure Environment Variables
+
+```bash
+# Copy and edit application configuration
 cp .env.example .env
-cp etc/environment.sh.example etc/environment.sh
+
+# Update .env with your API Gateway endpoint:
+# MCP_ENDPOINT_URL=https://your-api-id.execute-api.us-east-1.amazonaws.com/dev/lambda/mcp/
 ```
 
-Edit your configuration files with your actual values:
+### 🧪 测试部署
 
-Required .env settings:
-```bash
-# MCP Server Configuration
-MCP_ENDPOINT_URL=https://your-api-gateway-id.execute-api.us-east-1.amazonaws.com/dev/lambda/mcp/
+#### 使用测试脚本
 
-# AWS Configuration
-AWS_REGION=us-east-1
-AWS_PROFILE=default
-S3_BUCKET=your-unique-bucket-name
-
-# Bedrock Configuration
-BEDROCK_MODEL_ID=us.anthropic.claude-3-7-sonnet-20250219-v1:0
-
-# Flask Configuration
-FLASK_HOST=0.0.0.0
-FLASK_PORT=5002
-FLASK_DEBUG=true
-```
-
-### Step 2: Deploy MCP Server
-
-**Manual Deployment**
-```bash
-# Build and deploy Lambda layer
-make layer
-# Copy Layer ARN from output to O_LAYER_ARN in etc/environment.sh
-
-# Deploy API Gateway and Lambda function
-make apigw
-# Copy API Gateway URL from output and update .env
-```
-
-### Step 3: Run Components
-
-**Start Chatbot:**
-```bash
-cd src/chatbot
-python app.py
-```
-
-**Test MCP Server Locally:**
-```bash
-# FastAPI mode (web interface)
-cd src/mcpserver
-python server.py --mode fastapi --port 8000
-
-# Stdio mode (for MCP Inspector)
-python server.py --mode stdio
-```
-
-### Step 4: Test
-```bash
-# Test the deployment
-python simple_test_client.py
-
-# Or open web interface
-# Navigate to http://localhost:5002 and ask: "计算 2+2 并用Python验证"
-```
-
-### Troubleshooting
-- Ensure AWS credentials are configured: `aws sts get-caller-identity`
-- Check S3 bucket is unique and accessible
-- Verify .env file has correct API Gateway URL with `/dev/lambda/mcp/` suffix
-- Check logs for MCP connection errors
-- If build fails, check Docker is running and SAM CLI is installed
-
-### Build Process Notes
-- The `build/` directory (~23MB) is **automatically generated** and **excluded from git**
-- It contains Lambda layer dependencies and is recreated by `make layer`
-- Don't manually edit or commit build artifacts - they're platform-specific and version-dependent
-
-## 💡 Usage Examples
-
-### Python Code Execution
-```python
-# Data analysis
-import pandas as pd
-data = {'name': ['Alice', 'Bob'], 'age': [25, 30]}
-df = pd.DataFrame(data)
-print(df.describe())
-
-# Visualization
-import matplotlib.pyplot as plt
-import numpy as np
-x = np.linspace(0, 10, 100)
-plt.plot(x, np.sin(x))
-plt.show()
-```
-
-## 🌐 Interfaces
-
-### AI Chatbot (Port 5002) 
-- AWS Bedrock Claude 3.7 Sonnet integration
-- Natural language to code generation
-- Real-time status monitoring
-- Conversational interface for complex requests
-- Interactive MCP Python code execution
-- Environment-based configuration
-- Clean logging (only MCP calls and LLM interactions)
-
-## 🔧 Configuration & Deployment Guide
-
-### 📋 Quick Setup Checklist
-
-- [ ] Replace `YOUR_API_GATEWAY_ID` with your actual API Gateway ID
-- [ ] Replace `YOUR_REGION` with your AWS region (e.g., `us-east-1`)
-- [ ] Configure AWS credentials
-- [ ] Update environment variables
-- [ ] Test MCP server connectivity
-
-### 🌐 API Gateway Configuration
-
-After deploying your Lambda function, you'll receive an API Gateway endpoint. Replace the placeholder URLs in these files:
-
-#### Files to Update:
-```
-src/chatbot/app.py
-src/web_demo/chatbot_app.py
-src/chatbot/run_chatbot.sh
-test_python_interpreter_client.py
-simple_test_client.py
-```
-
-#### URL Pattern:
-```
-https://YOUR_API_GATEWAY_ID.execute-api.YOUR_REGION.amazonaws.com/dev/lambda/mcp/
-```
-
-#### Example:
-```python
-# Before (template)
-self.base_url = "https://YOUR_API_GATEWAY_ID.execute-api.YOUR_REGION.amazonaws.com/dev/lambda/mcp/"
-
-# After (your actual deployment)
-self.base_url = "https://abc123def4.execute-api.us-east-1.amazonaws.com/dev/lambda/mcp/"
-```
-
-### ⚙️ Environment Variables
-
-#### AWS Configuration
-```bash
-# AWS CLI configuration
-export AWS_PROFILE=your-profile-name
-export AWS_DEFAULT_REGION=us-east-1
-export AWS_ACCESS_KEY_ID=your-access-key
-export AWS_SECRET_ACCESS_KEY=your-secret-key
-```
-
-#### Lambda Configuration (etc/environment.sh)
-
-**Important**: Copy and modify the `environment.sh` file with your actual values:
+项目包含了一个综合测试脚本（`test_deployment.sh`）来验证 MCP 服务器部署：
 
 ```bash
-# AWS Configuration - Replace with your actual values
-PROFILE=default                            # Your AWS CLI profile name (default: default)
-BUCKET=mcp-lambda-test-0610               # S3 bucket for deployment artifacts (use unique name)
-REGION=us-east-1                          # Your preferred AWS region
+# 给测试脚本添加执行权限
+chmod +x test_deployment.sh
 
-# MCP Dependencies
-P_DESCRIPTION="mcp==1.8.0"               # MCP package version for Lambda layer
-LAYER_STACK=mcp-lambda-layer             # CloudFormation stack name for layer
-LAYER_TEMPLATE=sam/layer.yaml            # SAM template for layer
-LAYER_OUTPUT=sam/layer_output.yaml       # Generated layer output file
-LAYER_PARAMS="ParameterKey=description,ParameterValue=${P_DESCRIPTION}"
-# IMPORTANT: Set this after running 'make layer' - copy the ARN from output
-O_LAYER_ARN=""                           # Lambda layer ARN (empty initially, filled after layer deployment)
-
-# API Gateway and Lambda Stack Settings
-P_API_STAGE=dev                          # API Gateway deployment stage
-P_FN_MEMORY=128                          # Lambda memory allocation (MB) - increase for heavy computations
-P_FN_TIMEOUT=15                          # Lambda timeout (seconds) - increase for package installs
-APIGW_STACK=mcp-apigw                    # CloudFormation stack name for API Gateway
-APIGW_TEMPLATE=sam/template.yaml         # SAM template for API Gateway and Lambda
-APIGW_OUTPUT=sam/template_output.yaml    # Generated API Gateway output file
-APIGW_PARAMS="ParameterKey=apiStage,ParameterValue=${P_API_STAGE} ParameterKey=fnMemory,ParameterValue=${P_FN_MEMORY} ParameterKey=fnTimeout,ParameterValue=${P_FN_TIMEOUT} ParameterKey=dependencies,ParameterValue=${O_LAYER_ARN}"
+# 使用你的 API Gateway 端点运行综合测试
+./test_deployment.sh https://your-api-gateway-endpoint.execute-api.us-east-1.amazonaws.com/dev
 ```
 
-#### Configuration Steps:
+**使用示例：**
+```bash
+# 部署成功后，你会得到类似这样的端点：
+# https://gjtr49tm58.execute-api.us-east-1.amazonaws.com/dev
 
-1. **Create your environment file:**
+# 运行测试
+./test_deployment.sh https://gjtr49tm58.execute-api.us-east-1.amazonaws.com/dev
+```
+
+#### 测试脚本验证内容
+
+测试脚本执行三个综合测试：
+
+1. **📋 测试1：环境信息获取**
+   - 调用 `get_environment_info` 工具
+   - 验证 Python 版本获取
+   - 确认 MCP 服务器正在响应
+
+2. **🐍 测试2：Python 代码执行**
+   - 执行示例 Python 代码：`result = 2 + 3; print(f"计算结果: {result}")`
+   - 验证输出包含 "计算结果: 5"
+   - 确认执行成功状态
+
+3. **📦 测试3：预装包列表**
+   - 调用 `list_preinstalled_packages` 工具
+   - 验证关键库的存在（numpy, pandas, matplotlib）
+   - 确认数据科学环境就绪
+
+#### 预期测试输出
+
+```bash
+🧪 测试MCP部署
+================================
+MCP端点: https://gjtr49tm58.execute-api.us-east-1.amazonaws.com/dev/lambda/mcp/
+================================
+📋 测试1: 获取环境信息...
+✅ 环境信息获取成功
+   Python版本: 3.12.x
+
+🐍 测试2: 执行Python代码...
+✅ Python代码执行成功
+   输出: 计算结果: 5
+
+📦 测试3: 获取预装包列表...
+✅ 预装包列表获取成功
+   包含: numpy, pandas, matplotlib等数据科学包
+
+🎉 所有测试通过！MCP服务器部署成功
+================================
+📝 下一步：
+1. 更新 .env 文件中的 MCP_ENDPOINT_URL 为: https://your-endpoint/lambda/mcp/
+2. 运行 chatbot: cd src/chatbot && ./run_chatbot.sh
+3. 访问 http://localhost:5003 使用Web界面
+```
+
+#### 测试失败故障排除
+
+如果测试失败，请检查以下内容：
+
+1. **测试1失败（环境信息）**
    ```bash
-   cd etc
-   cp environment.sh environment.sh.example  # backup template
-   # Edit environment.sh with your values
+   ❌ 环境信息获取失败
    ```
+   - 验证 API Gateway 端点 URL 是否正确
+   - 检查 Lambda 函数是否已部署并运行
+   - 确保发送了正确的请求头
 
-2. **Replace these values:**
-   - `PROFILE`: Your AWS CLI profile (run `aws configure list-profiles`)
-   - `BUCKET`: Create a unique S3 bucket name (e.g., `mcp-deploy-yourname-$(date +%s)`)
-   - `REGION`: Your preferred AWS region
-   - `O_LAYER_ARN`: Leave empty initially, will be filled after layer deployment
-
-3. **Deploy in order:**
+2. **测试2失败（Python执行）**
    ```bash
-   make layer          # Creates layer, outputs ARN
-   # Copy ARN to O_LAYER_ARN in environment.sh
-   make apigw          # Creates API Gateway and Lambda
+   ❌ Python代码执行失败
    ```
+   - 检查 Lambda 日志中的执行错误
+   - 验证 Python 解释器是否正常工作
+   - 确保没有安全阻止执行
 
-### 🤖 Chatbot Configuration
+3. **测试3失败（包列表）**
+   ```bash
+   ❌ 预装包列表获取失败
+   ```
+   - 验证 Lambda 层是否正确附加
+   - 检查依赖项是否正确安装在层中
+   - 确保部署中的层 ARN 正确
 
-#### Bedrock Model Settings
-```python
-# In chatbot/app.py
-self.model_id = "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
-self.region = "us-east-1"
-```
+#### 手动测试
 
-#### MCP Server URL
-```python
-# In chatbot/app.py
-self.base_url = "https://YOUR_API_GATEWAY_ID.execute-api.YOUR_REGION.amazonaws.com/dev/lambda/mcp/"
-```
+你也可以手动测试各个组件：
 
-### 🔐 Security Configuration
-
-#### IAM Permissions Required
-Your AWS user/role needs these permissions:
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "lambda:*",
-                "apigateway:*",
-                "iam:*",
-                "s3:*",
-                "cloudformation:*",
-                "bedrock:*"
-            ],
-            "Resource": "*"
-        }
-    ]
-}
-```
-
-#### Bedrock Access
-Ensure Bedrock Claude model access is enabled in your AWS account:
-1. Go to AWS Bedrock console
-2. Navigate to "Model access"
-3. Enable Claude 3.7 Sonnet model
-
-### 🚀 Deployment Steps
-
-#### 1. Configure Environment
 ```bash
-cp etc/environment.sh.example etc/environment.sh
-# Edit etc/environment.sh with your settings
-```
-
-#### 2. Deploy Lambda Layer
-```bash
-make layer
-# Copy the layer ARN to O_LAYER_ARN in environment.sh
-```
-
-#### 3. Deploy Infrastructure
-```bash
-make apigw
-# Note the API Gateway endpoint from output
-```
-
-#### 4. Update Client URLs
-Replace `YOUR_API_GATEWAY_ID` and `YOUR_REGION` in client files with actual values.
-
-#### 5. Test Deployment
-```bash
-# Test with Python client
-python test_python_interpreter_client.py
-
-# Test web interface
-cd src/web_demo
-./run_demo.sh
-
-# Test chatbot
-cd src/chatbot  
-./run_chatbot.sh
-```
-
-### 🔍 Verification
-
-#### Test MCP Server
-```bash
-curl -X POST "https://YOUR_API_GATEWAY_ID.execute-api.YOUR_REGION.amazonaws.com/dev/lambda/mcp/" \
+# 测试环境信息
+curl -X POST "https://your-endpoint/lambda/mcp/" \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}'
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_environment_info", "arguments": {}}}'
+
+# 测试 Python 执行
+curl -X POST "https://your-endpoint/lambda/mcp/" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "execute_python", "arguments": {"code": "print(\"Hello World\")"}}}'
+
+# 测试包列表
+curl -X POST "https://your-endpoint/lambda/mcp/" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "list_preinstalled_packages", "arguments": {}}}'
 ```
 
-#### Expected Response
+## 🔧 MCP Server Capabilities
+
+The Lambda Code Interpreter provides three main MCP tools:
+
+### 1. `execute_python`
+Execute Python code with optional package installation.
+
+**Parameters:**
+- `code` (string): Python code to execute
+- `requirements` (array, optional): List of packages to install
+
+**Example:**
 ```json
 {
   "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "tools": [
-      {
-        "name": "execute_python",
-        "description": "Execute Python code and return the result"
-      },
-      {
-        "name": "list_preinstalled_packages", 
-        "description": "List all pre-installed Python packages"
-      },
-      {
-        "name": "get_environment_info",
-        "description": "Get Python environment information"
-      }
-    ]
-  }
+  "method": "tools/call",
+  "params": {
+    "name": "execute_python",
+    "arguments": {
+      "code": "import pandas as pd\ndf = pd.DataFrame({'x': [1,2,3], 'y': [4,5,6]})\nprint(df.describe())",
+      "requirements": ["pandas"]
+    }
+  },
+  "id": 1
 }
 ```
 
-## 📁 Repository Structure
+### 2. `list_preinstalled_packages`
+Get a list of pre-installed Python packages.
 
-**Active Implementation:** Current directory - Python code interpreter on AWS Lambda  
-**Archived:** Multiple Node.js and ECS implementations available in other directories
-
-### Detailed Structure
-```
-Lambda-code-interpreter/
-├── requirements.txt           # Unified Python dependencies
-├── .env.example              # Environment configuration template
-├── etc/
-│   └── environment.sh.example # AWS deployment configuration template
-├── sam/
-│   ├── layer.yaml            # Lambda layer template
-│   ├── template.yaml         # Main infrastructure template
-│   └── openapi.yaml          # API documentation
-├── src/
-│   ├── mcpserver/
-│   │   ├── server.py         # FastAPI server entry point
-│   │   ├── python_interpreter.py # Core interpreter functionality
-│   │   └── run.sh           # Lambda runtime script
-│   └── chatbot/
-│       ├── app.py           # Web chatbot interface
-│       ├── templates/       # HTML templates
-│       └── run_chatbot.sh   # Chatbot startup script
-└── makefile                 # Build and deployment commands
-```
-
-## 🛠️ Prerequisites & Development
-
-### Requirements
-- AWS CLI configured
-- Python 3.9+
-- AWS SAM CLI  
-- Docker/Podman
-- Make utility
-
-### Virtual Environment Management
-
-This project uses **multiple virtual environments** to isolate dependencies:
-
-```
-Lambda-code-interpreter/
-├── venv/                                    # Main project environment (Lambda server)
-└── src/chatbot/venv/                       # Chatbot environment
-```
-
-**Why separate environments?**
-- 🔒 **Isolation**: Each component has specific dependencies
-- 📦 **Clean builds**: Lambda layer only includes necessary packages
-- 🚀 **Faster deployment**: Smaller package sizes
-- 🛡️ **Security**: Reduced attack surface per component
-
-### Working with Virtual Environments
-
-**Main Project (General utilities):**
-```bash
-source venv/bin/activate
-# Work with general project scripts
-```
-
-**Lambda Server (MCP Server development):**
-```bash
-source venv/bin/activate
-pip install -r requirements.txt
-
-# Run locally with FastAPI
-cd src/mcpserver
-python server.py --mode fastapi --port 8000
-
-# Test with stdio mode
-python server.py --mode stdio
-```
-
-**Chatbot (Web interface development):**
-```bash
-cd src/chatbot
-source venv/bin/activate
-pip install -r ../../requirements.txt
-
-# Run chatbot
-python app.py
-# Or use the run script
-./run_chatbot.sh
-```
-
-### Local Development
-```bash
-# Quick setup with automated script
-./setup.sh
-
-# Manual testing
-python -m pytest tests/  # If tests directory exists
-```
-
-### Git Configuration
-
-All virtual environments are **automatically excluded** from git via `.gitignore`:
-```gitignore
-# Virtual environments
-venv/
-env/
-ENV/
-src/chatbot/venv/
-```
-
-**Benefits:**
-- ⚡ Faster git operations
-- 💾 Smaller repository size  
-- 🔄 Platform-independent setup
-- 👥 Consistent development environment
-
-### Environment Configuration
-The project uses environment variables for secure configuration:
-- **`.env`**: Your actual configuration (gitignored, not committed)
-- **`.env.example`**: Template showing required variables
-- All sensitive information (API URLs, keys) stored in `.env`
-
-### MCP Inspector Testing
-
-After deployment, test with [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector):
-
-```bash
-# Start MCP Inspector locally
-mcp dev src/mcpserver/server.py
-
-# Or test the deployed endpoint
-# Use the outApiEndpoint from deployment: ${outApiEndpoint}/lambda/mcp/
-```
-
-### Adding New Tools
-Extend `python_interpreter.py` with additional MCP tools:
-
-```python
-@mcp.tool(description="Your new tool description")
-def your_new_tool(param: str) -> Dict[str, Any]:
-    # Tool implementation
-    return {"result": "success"}
-```
-
-## 🔒 Security & Monitoring
-
-### Security Features
-- **Lambda Sandbox**: Isolated execution environment
-- **Code Pattern Blocking**: Prevents dangerous operations like `os.system()`
-- **Subprocess Restrictions**: Blocks direct system command execution
-- **Timeout Protection**: Package installation limited to 30 seconds
-- **Resource Limits**: Configurable memory (512MB-3GB) and timeout (30-900s)
-- **File System**: Write access limited to `/tmp` directory
-
-### Monitoring
-- **CloudWatch Logs**: `/aws/lambda/[function-name]` for execution logs
-- **Performance**: Cold start ~2-3s, warm requests <100ms
-- **Troubleshooting**: Increase timeout/memory in `etc/environment.sh`
-
-### Pre-installed Packages
-
-The server comes with these packages pre-installed:
+**Pre-installed Libraries:**
 - **Data Science**: pandas, numpy, matplotlib, scipy, scikit-learn, seaborn
-- **Web**: requests, fastapi, pydantic, uvicorn
-- **Standard Library**: json, os, re, datetime, math, random, collections
+- **Web**: fastapi, pydantic, uvicorn, requests, httpx
+- **Standard**: json, os, re, datetime, math, random, collections
 
-### Environment Information
-Use the `get_environment_info` tool to check:
-- Python version and platform
-- Available memory
-- Installed packages
-- Temporary directory status
+### 3. `get_environment_info`
+Retrieve Python environment information including version, platform, and installed packages.
 
-## 🛠️ Troubleshooting
+## 🔒 Security Features
 
-### Common Issues
+### Multi-Layer Security
+1. **AWS Lambda Sandbox**: Isolated execution environment with read-only filesystem (except `/tmp`)
+2. **Code Pattern Blocking**: Prevents dangerous operations:
+   - `os.system()`, `subprocess.call()`, `subprocess.run()`
+   - Direct system command execution
+   - Malicious import patterns
+3. **Resource Limits**: 
+   - Configurable memory allocation (128MB - 10GB)
+   - Execution timeout (15-900 seconds)
+   - Package installation timeout (30 seconds)
+4. **Network Restrictions**: Lambda execution environment controls
 
-1. **API Gateway 403 Errors**
-   - Check IAM permissions
-   - Verify API Gateway deployment
+### Configuration Options
+```bash
+# In etc/environment.sh
+P_FN_MEMORY=128      # Lambda memory in MB (128-10240)
+P_FN_TIMEOUT=60      # Lambda timeout in seconds (15-900)
+```
 
-2. **Lambda Cold Start Timeouts**
-   - Increase timeout in environment.sh
-   - Consider provisioned concurrency
+## 📁 Project Structure
 
-3. **Package Installation Timeout**
-   - Increase `P_FN_TIMEOUT` in configuration
-   - Some packages may require more time to install
+```
+Lambda-code-interpreter/
+├── requirements.txt              # Unified Python dependencies
+├── .env.example                 # Application configuration template
+├── makefile                     # Build and deployment commands
+├── test_deployment.sh          # Deployment testing script
+├── simple_test_client.py       # Standalone MCP test client
+├── etc/
+│   └── environment.sh.example  # AWS deployment configuration
+├── sam/                        # AWS SAM templates
+│   ├── template.yaml          # Main infrastructure (Lambda + API Gateway)
+│   ├── layer.yaml            # Lambda layer for dependencies
+│   ├── openapi.yaml          # API Gateway specification
+│   └── src/dependencies/     # Layer dependencies
+└── src/
+    └── mcpserver/           # MCP server implementation
+        ├── server.py        # FastAPI server with MCP integration
+        ├── python_interpreter.py  # Core interpreter and tools
+        └── run.sh          # Lambda execution wrapper
+```
 
-4. **Memory Errors**
-   - Increase `P_FN_MEMORY` for large computations
-   - Monitor memory usage in CloudWatch
+## 🛠️ Development & Testing
 
-5. **Permission Errors**
-   - Verify IAM roles have necessary permissions
-   - Check Lambda execution role
+### Local Testing
 
-6. **Bedrock Access Denied**
-   - Enable Claude model access in Bedrock console
-   - Check IAM permissions for Bedrock
+For local development and testing, you can run the MCP server standalone:
 
-7. **MCP Connection Failures**
-   - Verify API Gateway URL is correct
-   - Check Lambda function logs in CloudWatch
+```bash
+# Activate virtual environment
+source venv/bin/activate
 
-### Getting Help
+# Navigate to MCP server directory
+cd src/mcpserver
 
-- Check CloudWatch logs for Lambda function errors
-- Use AWS CLI to test API Gateway endpoints
-- Verify network connectivity and DNS resolution
+# Run in different modes:
+python server.py --mode stdio           # Standard I/O mode
+python server.py --mode streamable-http # HTTP streaming mode  
+python server.py --mode fastapi         # FastAPI server mode
+```
+
+### Test Client
+
+Use the provided test client for local development:
+
+```bash
+python simple_test_client.py https://your-endpoint.execute-api.us-east-1.amazonaws.com/dev/lambda/mcp/
+```
 
 ### Make Commands
 
-- `make layer`: Build and deploy Lambda layer with dependencies
-- `make apigw`: Deploy API Gateway and Lambda function
-- `make apigw.delete`: Remove the deployed stack
+- `make layer` - Build and deploy Lambda layer with dependencies
+- `make layer.build` - Build layer only (no deployment)
+- `make layer.package` - Package layer for deployment
+- `make layer.deploy` - Deploy layer to AWS
+- `make apigw` - Deploy API Gateway and Lambda function
+- `make apigw.package` - Package application for deployment
+- `make apigw.deploy` - Deploy application stack
+- `make apigw.delete` - Delete deployed stack
 
-## 💰 Cost & Resources
+## 🌐 API Usage
 
-### Cost Optimization
+### Endpoint Format
+```
+POST https://your-api-id.execute-api.us-east-1.amazonaws.com/dev/lambda/mcp/
+```
 
-- **Cold Start**: First request may take 2-3 seconds for initialization
-- **Warm Requests**: Subsequent requests execute in <100ms
-- **Pay-per-Use**: Lambda charges only for actual execution time
-- **Memory Tuning**: Balance memory allocation with cost requirements
+### Required Headers
+```
+Content-Type: application/json
+Accept: application/json, text/event-stream
+```
 
-### Pricing Example
-1000 requests/month, 512MB, 2s execution: ~$0.02/month
+### Request Format (JSON-RPC 2.0)
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "execute_python",
+    "arguments": {
+      "code": "print('Hello, World!')"
+    }
+  },
+  "id": 1
+}
+```
 
-## 📚 Additional Resources
+### Response Format (Server-Sent Events)
+```
+event: message
+data: {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"..."}]}}
+```
 
-- [MCP Protocol Specification](https://modelcontextprotocol.io/)
-- [AWS Lambda Documentation](https://docs.aws.amazon.com/lambda/)
-- [API Gateway Documentation](https://docs.aws.amazon.com/apigateway/)
-- [AWS Bedrock Documentation](https://docs.aws.amazon.com/bedrock/)
-- [FastMCP Documentation](https://github.com/jlowin/fastmcp)
+## 🔍 Troubleshooting
 
-## 📜 License
+### Common Issues
 
-MIT-0 License - See [LICENSE](LICENSE) file for details.
+1. **"uvicorn module not found"**
+   - Ensure Lambda layer is properly deployed and referenced
+   - Check `O_LAYER_ARN` in `etc/environment.sh`
+
+2. **API Gateway 403/404 errors**
+   - Verify AWS permissions for API Gateway and Lambda
+   - Check endpoint URL format (ensure trailing slash: `/mcp/`)
+
+3. **Lambda timeout errors**
+   - Increase `P_FN_TIMEOUT` in environment configuration
+   - Consider increasing memory allocation for complex computations
+
+4. **Package installation failures**
+   - Some packages may not install in Lambda environment
+   - Consider adding to pre-installed layer dependencies
+
+5. **S3 Access Denied**
+   - Verify S3 bucket permissions and AWS profile
+   - Ensure bucket exists and is accessible
+
+### Logs and Monitoring
+
+View Lambda logs using AWS CLI:
+```bash
+# List log groups
+aws logs describe-log-groups --log-group-name-prefix "/aws/lambda/mcp-apigw-Fn" --profile default
+
+# Get recent logs
+aws logs get-log-events --log-group-name "/aws/lambda/your-function-log-group" --log-stream-name "latest-stream" --profile default
+```
+
+## 📊 Performance Considerations
+
+- **Cold Start**: ~2-3 second initialization for new Lambda containers
+- **Memory**: 128MB minimum, 1GB+ recommended for data science workloads
+- **Timeout**: 60 seconds default, up to 15 minutes maximum
+- **Package Installation**: 30-second timeout, runs once per container lifecycle
+- **Concurrent Executions**: AWS Lambda default limits apply
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly with `test_deployment.sh`
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the terms specified in the LICENSE file.
+
+## 🆘 Support
+
+For issues and questions:
+1. Check the troubleshooting section above
+2. Review AWS CloudWatch logs for detailed error information
+3. Ensure all prerequisites are properly installed and configured
+4. Verify AWS permissions and resource limits
 
 ---
 
-**Note**: Keep configuration files updated as your setup changes. Never commit actual credentials or API endpoints to version control.# Lambda-code-interpreter
+**Note**: This is a serverless implementation designed for secure, isolated Python code execution. Always review code execution patterns and adjust security settings according to your use case requirements.
