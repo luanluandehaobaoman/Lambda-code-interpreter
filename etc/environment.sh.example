@@ -1,0 +1,39 @@
+# AWS Configuration Template
+# Copy this file to environment.sh and replace with your actual values
+
+# AWS Configuration - Replace with your actual values
+PROFILE=your-aws-profile                    # Your AWS CLI profile name (e.g., default, dev, prod)
+BUCKET=your-unique-s3-bucket-name          # S3 bucket for deployment artifacts (must be globally unique)
+REGION=us-east-1                           # Your preferred AWS region
+
+# MCP Dependencies
+P_DESCRIPTION="mcp==1.8.0"
+LAYER_STACK=mcp-lambda-layer
+LAYER_TEMPLATE=sam/layer.yaml
+LAYER_OUTPUT=sam/layer_output.yaml
+LAYER_PARAMS="ParameterKey=description,ParameterValue=${P_DESCRIPTION}"
+# IMPORTANT: Leave empty initially, set after running 'make layer'
+# Copy the layer ARN from the deployment output
+O_LAYER_ARN=""
+
+# API Gateway and Lambda Stack Settings
+P_API_STAGE=dev                            # API Gateway deployment stage
+P_FN_MEMORY=1024                          # Lambda memory allocation (MB) - recommend 1024+ for Python execution
+P_FN_TIMEOUT=120                          # Lambda timeout (seconds) - recommend 120+ for complex operations
+APIGW_STACK=mcp-apigw
+APIGW_TEMPLATE=sam/template.yaml
+APIGW_OUTPUT=sam/template_output.yaml
+APIGW_PARAMS="ParameterKey=apiStage,ParameterValue=${P_API_STAGE} ParameterKey=fnMemory,ParameterValue=${P_FN_MEMORY} ParameterKey=fnTimeout,ParameterValue=${P_FN_TIMEOUT} ParameterKey=dependencies,ParameterValue=${O_LAYER_ARN}"
+
+# Configuration Steps:
+# 1. Copy this file: cp environment.sh.example environment.sh
+# 2. Edit environment.sh with your actual values
+# 3. Run: make layer (copy the output ARN to O_LAYER_ARN above)
+# 4. Run: make apigw (deploys the full stack)
+# 5. Test your deployment with the provided test clients
+
+# Example values:
+# PROFILE=myprofile
+# BUCKET=mcp-deploy-john-1234567890
+# REGION=us-west-2
+# O_LAYER_ARN=arn:aws:lambda:us-west-2:123456789012:layer:mcp-dependencies-python3:1

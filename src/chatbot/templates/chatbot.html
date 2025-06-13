@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude 3.7 Sonnet + MCP 实时日志测试系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            min-height: 100vh; 
+            color: #333;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header { 
+            text-align: center; 
+            color: white; 
+            margin-bottom: 30px;
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header p { font-size: 1.1em; opacity: 0.9; }
+        .card { 
+            background: white; 
+            border-radius: 15px; 
+            padding: 25px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .logs-section { 
+            background: #2d3748; 
+            color: #e2e8f0; 
+            border-radius: 15px; 
+            padding: 20px;
+            min-height: 400px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #4a5568;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border-left: 4px solid transparent;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        .log-info { border-left-color: #3182ce; background: rgba(49, 130, 206, 0.1); }
+        .log-debug { border-left-color: #6b7280; background: rgba(107, 114, 128, 0.1); color: #9ca3af; }
+        .log-warning { border-left-color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+        .log-error { border-left-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+        .log-time { color: #a0aec0; font-size: 11px; margin-right: 8px; }
+        .log-name { color: #63b3ed; font-weight: 600; margin-right: 8px; }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-weight: 600; 
+            color: #333; 
+            font-size: 1.1em;
+        }
+        .input-group textarea { 
+            width: 100%; 
+            min-height: 120px; 
+            padding: 15px; 
+            border: 2px solid #e1e5e9; 
+            border-radius: 10px; 
+            font-size: 16px; 
+            resize: vertical;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+        .input-group textarea:focus { 
+            border-color: #667eea; 
+            outline: none; 
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .btn { 
+            background: linear-gradient(45deg, #667eea, #764ba2); 
+            color: white; 
+            border: none; 
+            padding: 15px 30px; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+        .btn:disabled { 
+            opacity: 0.6; 
+            cursor: not-allowed; 
+            transform: none;
+            box-shadow: none;
+        }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+        .stat-card { 
+            text-align: center; 
+            padding: 20px; 
+            background: linear-gradient(145deg, #f8f9fa, #e9ecef); 
+            border-radius: 12px; 
+        }
+        .stat-number { font-size: 2em; font-weight: 700; color: #667eea; margin-bottom: 5px; }
+        .stat-label { color: #6c757d; font-weight: 500; font-size: 0.9em; }
+        .preset-questions { margin-bottom: 20px; }
+        .preset-questions p { font-weight: 600; margin-bottom: 12px; color: #495057; }
+        .preset-btn { 
+            background: #e9ecef; 
+            color: #495057; 
+            border: 1px solid #ced4da; 
+            padding: 8px 12px; 
+            margin: 4px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 13px; 
+            transition: all 0.2s ease;
+            display: inline-block;
+        }
+        .preset-btn:hover { 
+            background: #667eea; 
+            color: white;
+            transform: translateY(-1px);
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .control-btn {
+            background: #4a5568;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .control-btn:hover {
+            background: #2d3748;
+        }
+        .auto-scroll-on { background: #48bb78 !important; }
+        @media (max-width: 768px) { 
+            .main-grid { grid-template-columns: 1fr; }
+            .container { padding: 10px; }
+            .header h1 { font-size: 2em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Claude 3.7 Sonnet + MCP 实时日志测试系统</h1>
+            <p>实时显示MCP交互过程 • 详细日志记录 • 性能监控</p>
+        </div>
+        
+        <div class="card">
+            <h2>📊 系统状态</h2>
+            <div class="stats-grid" id="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="conversation-count">0</div>
+                    <div class="stat-label">对话次数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="avg-time">0.0s</div>
+                    <div class="stat-label">平均响应时间</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="mcp-requests">0</div>
+                    <div class="stat-label">MCP请求数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="success-count">0</div>
+                    <div class="stat-label">成功次数</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-grid">
+            <div class="card">
+                <h2>💬 交互式测试</h2>
+                <div class="preset-questions">
+                    <p>📝 快速测试问题：</p>
+                    <button class="preset-btn" onclick="setQuestion('计算1到50的平方和')">平方和</button>
+                    <button class="preset-btn" onclick="setQuestion('生成前15个斐波那契数')">斐波那契</button>
+                    <button class="preset-btn" onclick="setQuestion('找出100以内的质数')">质数</button>
+                    <button class="preset-btn" onclick="setQuestion('用pandas分析销售数据')">数据分析</button>
+                    <button class="preset-btn" onclick="setQuestion('绘制正弦函数图像')">数据可视化</button>
+                    <button class="preset-btn" onclick="setQuestion('什么是机器学习？')">纯文本</button>
+                </div>
+                <div class="input-group">
+                    <label for="question">💭 输入您的问题：</label>
+                    <textarea id="question" placeholder="例如：用Python计算圆周率π的近似值，或者问我任何关于编程的问题"></textarea>
+                </div>
+                <button class="btn" onclick="testQuestion()" id="test-btn">
+                    <span>🚀 开始测试</span>
+                </button>
+            </div>
+            
+            <div class="logs-section">
+                <div class="logs-header">
+                    <h3>📋 实时MCP交互日志</h3>
+                    <div class="controls">
+                        <button class="control-btn" onclick="clearLogs()">清空</button>
+                        <button class="control-btn auto-scroll-on" id="auto-scroll-btn" onclick="toggleAutoScroll()">自动滚动</button>
+                    </div>
+                </div>
+                <div id="logs-container">
+                    <div class="log-entry">
+                        <span class="log-time">--:--:--</span>
+                        <span class="log-name">系统</span>
+                        等待日志输出...
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>📋 测试结果</h2>
+            <div id="results" style="max-height: 400px; overflow-y: auto;">
+                <div style="text-align: center; padding: 40px; color: #6c757d; font-style: italic;">
+                    暂无测试结果，请在上方输入问题开始测试...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let autoScroll = true;
+        let logContainer = document.getElementById('logs-container');
+        let stats = {
+            conversationCount: 0,
+            totalTime: 0,
+            mcpRequests: 0,
+            successCount: 0
+        };
+        
+        function updateStats() {
+            fetch('/api/status')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('conversation-count').textContent = stats.conversationCount;
+                document.getElementById('avg-time').textContent = stats.conversationCount > 0 ? 
+                    (stats.totalTime / stats.conversationCount).toFixed(1) + 's' : '0.0s';
+                document.getElementById('mcp-requests').textContent = stats.mcpRequests;
+                document.getElementById('success-count').textContent = stats.successCount;
+            })
+            .catch(error => console.error('更新统计失败:', error));
+        }
+        
+        function updateLogs() {
+            fetch('/api/logs?limit=10')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.logs) {
+                    data.logs.forEach(log => {
+                        if (!log.displayed) {
+                            addLogEntry(log);
+                            log.displayed = true;
+                        }
+                    });
+                }
+            })
+            .catch(error => console.error('获取日志失败:', error));
+        }
+        
+        function addLogEntry(log) {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry log-info';
+            
+            // 根据日志类型设置样式
+            if (log.type === 'ERROR') {
+                entry.className = 'log-entry log-error';
+            } else if (log.type === 'REQUEST') {
+                entry.className = 'log-entry log-info';
+            } else if (log.type === 'RESPONSE') {
+                entry.className = 'log-entry log-debug';
+            }
+            
+            const time = new Date(log.timestamp).toLocaleTimeString();
+            const name = log.type || 'MCP';
+            const message = typeof log.data === 'object' ? 
+                JSON.stringify(log.data).substring(0, 100) + '...' : 
+                log.data.toString().substring(0, 100);
+            
+            entry.innerHTML = `
+                <span class="log-time">${time}</span>
+                <span class="log-name">${name}</span>
+                ${message}
+            `;
+            
+            logContainer.appendChild(entry);
+            
+            // 保持最多1000条日志
+            while (logContainer.children.length > 1000) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+            
+            // 自动滚动到底部
+            if (autoScroll) {
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+        }
+        
+        function clearLogs() {
+            logContainer.innerHTML = '<div class="log-entry"><span class="log-time">--:--:--</span><span class="log-name">系统</span>日志已清空</div>';
+            fetch('/api/logs/clear', { method: 'POST' });
+        }
+        
+        function toggleAutoScroll() {
+            autoScroll = !autoScroll;
+            const btn = document.getElementById('auto-scroll-btn');
+            if (autoScroll) {
+                btn.textContent = '自动滚动';
+                btn.classList.add('auto-scroll-on');
+                logContainer.scrollTop = logContainer.scrollHeight;
+            } else {
+                btn.textContent = '手动滚动';
+                btn.classList.remove('auto-scroll-on');
+            }
+        }
+        
+        function setQuestion(text) {
+            document.getElementById('question').value = text;
+        }
+        
+        function testQuestion() {
+            const question = document.getElementById('question').value.trim();
+            if (!question) {
+                alert('请输入问题');
+                return;
+            }
+            
+            const btn = document.getElementById('test-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span>🤖 测试中...</span>';
+            
+            // 记录开始时间
+            const startTime = Date.now();
+            
+            // 清空输入框
+            document.getElementById('question').value = '';
+            
+            // 添加用户问题到日志
+            addLogEntry({
+                timestamp: new Date().toISOString(),
+                type: 'USER',
+                data: '用户问题: ' + question
+            });
+            
+            stats.conversationCount++;
+            stats.mcpRequests++;
+            
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: question })
+            })
+            .then(response => response.json())
+            .then(result => {
+                const endTime = Date.now();
+                const duration = (endTime - startTime) / 1000;
+                stats.totalTime += duration;
+                
+                if (result.success) {
+                    stats.successCount++;
+                    addResult({
+                        question: question,
+                        claude_response: result.response,
+                        python_results: result.python_results,
+                        success: true,
+                        claude_time: duration,
+                        timestamp: new Date().toISOString()
+                    });
+                } else {
+                    addResult({
+                        question: question,
+                        claude_response: result.error || '未知错误',
+                        success: false,
+                        claude_time: duration,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                
+                updateStats();
+            })
+            .catch(error => {
+                console.error('测试失败:', error);
+                addLogEntry({
+                    timestamp: new Date().toISOString(),
+                    type: 'ERROR',
+                    data: '测试失败: ' + error.message
+                });
+                
+                const endTime = Date.now();
+                const duration = (endTime - startTime) / 1000;
+                stats.totalTime += duration;
+                
+                addResult({
+                    question: question,
+                    claude_response: '网络错误: ' + error.message,
+                    success: false,
+                    claude_time: duration,
+                    timestamp: new Date().toISOString()
+                });
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<span>🚀 开始测试</span>';
+            });
+        }
+        
+        function addResult(result) {
+            const resultsDiv = document.getElementById('results');
+            if (resultsDiv.innerHTML.includes('暂无测试结果')) {
+                resultsDiv.innerHTML = '';
+            }
+            
+            const resultDiv = document.createElement('div');
+            resultDiv.style.cssText = `
+                border: 1px solid #dee2e6; 
+                border-radius: 12px; 
+                padding: 20px; 
+                margin-bottom: 15px;
+                border-left: 4px solid ${result.success ? '#48bb78' : '#f56565'};
+            `;
+            
+            let html = `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                    <div style="font-weight: 600; color: #495057;">${result.question}</div>
+                    <div style="color: #6c757d; font-size: 0.9em;">${new Date(result.timestamp).toLocaleString()}</div>
+                </div>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                    <strong>🤖 Claude响应 (${result.claude_time.toFixed(1)}s):</strong><br>
+                    <div style="margin-top: 8px; white-space: pre-wrap;">${result.claude_response.substring(0, 500)}${result.claude_response.length > 500 ? '...' : ''}</div>
+                </div>
+            `;
+            
+            if (result.python_results && result.python_results.length > 0) {
+                result.python_results.forEach((pythonResult, index) => {
+                    html += `
+                        <div style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 8px; margin: 10px 0; font-family: monospace;">
+                            <strong>🐍 Python代码 #${pythonResult.block_index || index + 1}:</strong><br>
+                            <pre style="margin: 8px 0; white-space: pre-wrap; font-size: 13px;">${pythonResult.code}</pre>
+                        </div>
+                    `;
+                    
+                    if (pythonResult.result) {
+                        const res = pythonResult.result;
+                        if (res.result && res.result.content) {
+                            const content = JSON.parse(res.result.content[0].text);
+                            html += `
+                                <div style="background: #e6fffa; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                                    <strong>📊 执行结果:</strong><br>
+                            `;
+                            
+                            if (content.success) {
+                                if (content.stdout) {
+                                    html += `<div style="margin: 8px 0;"><strong>📋 输出:</strong><br><pre style="white-space: pre-wrap; font-size: 13px;">${content.stdout}</pre></div>`;
+                                }
+                                if (content.result && content.result !== 'Code executed successfully') {
+                                    html += `<div style="margin: 8px 0;"><strong>📋 结果:</strong> ${content.result}</div>`;
+                                }
+                                html += '<div style="color: #48bb78; font-weight: 600; margin-top: 10px;">✅ 执行成功</div>';
+                            } else {
+                                html += `<div style="color: #f56565; font-weight: 600;">❌ 执行失败: ${content.result || content.stderr || '未知错误'}</div>`;
+                            }
+                            
+                            html += '</div>';
+                        }
+                    }
+                });
+            }
+            
+            resultDiv.innerHTML = html;
+            resultsDiv.insertBefore(resultDiv, resultsDiv.firstChild);
+            
+            // 保持最多10个结果
+            while (resultsDiv.children.length > 10) {
+                resultsDiv.removeChild(resultsDiv.lastChild);
+            }
+        }
+        
+        // 初始化
+        window.onload = function() {
+            updateStats();
+            updateLogs();
+            setInterval(updateStats, 5000);
+            setInterval(updateLogs, 2000); // 每2秒更新日志
+        };
+        
+        // 回车键提交
+        document.getElementById('question').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                testQuestion();
+            }
+        });
+    </script>
+</body>
+</html>
