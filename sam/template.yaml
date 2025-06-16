@@ -8,9 +8,10 @@ Globals:
     Layers:
       - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:55"
       - !Sub "arn:aws:lambda:${AWS::Region}:753240598075:layer:LambdaAdapterLayerX86:25" 
+      - !Sub "arn:aws:lambda:${AWS::Region}:336392948345:layer:AWSSDKPandas-Python311:18"
       - !Ref dependencies
     MemorySize: !Ref fnMemory
-    Runtime: python3.12
+    Runtime: python3.11
     Timeout: !Ref fnTimeout
     Tracing: Active
 Parameters:
