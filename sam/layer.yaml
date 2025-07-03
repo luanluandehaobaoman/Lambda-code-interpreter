@@ -15,9 +15,7 @@ Resources:
       Description: !Ref description
       LayerName: mcp-dependencies-python3
     Metadata:
-      BuildMethod: python3.12
-      BuildProperties:
-        UseContainer: true
+      BuildMethod: python3.11
 Outputs:
   outLayer:
     Value: !Ref LayerMcp

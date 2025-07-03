@@ -36,6 +36,9 @@ AWS Lambda Function (Python 3.12)
 - **Docker** (required for SAM to build Lambda layers)
 - **AWS SAM CLI** (`pip install aws-sam-cli`)
 - **S3 Bucket** for deployment artifacts
+- Enable API Gateway to write logs to CloudWatch in the corresponding
+  region. Follow the AWS documentation for [setting up CloudWatch API
+  logging using the API Gateway console](https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-logging.html#set-up-access-logging-using-console).
 
 ### Installation & Deployment
 

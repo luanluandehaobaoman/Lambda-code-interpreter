@@ -23,7 +23,8 @@ class DependencyManager:
             'pandas', 'numpy', 'matplotlib', 'scipy', 
             'sklearn', 'seaborn', 'requests', 'fastapi',
             'pydantic', 'uvicorn', 'json', 'os', 're',
-            'datetime', 'math', 'random', 'collections'
+            'datetime', 'math', 'random', 'collections',
+            'sympy', 'mpmath'
         }
         
         self.tmp_dir = Path("/tmp/py_packages")
